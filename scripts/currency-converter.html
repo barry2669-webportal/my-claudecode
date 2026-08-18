@@ -15,6 +15,9 @@
     --accent-soft: #eef0ff;
     --mono-bg: #f7f7f9;
     --ok: #16a34a;
+    --danger: #b91c1c;
+    --danger-bg: rgba(220,38,38,0.08);
+    --danger-border: rgba(220,38,38,0.35);
     --shadow: 0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.06);
   }
 
@@ -29,6 +32,9 @@
       --accent-soft: #23253a;
       --mono-bg: #14161c;
       --ok: #4ade80;
+      --danger: #f87171;
+      --danger-bg: rgba(248,113,113,0.12);
+      --danger-border: rgba(248,113,113,0.35);
       --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.25);
     }
   }
@@ -59,6 +65,49 @@
   }
 
   .amount-card { margin-bottom: 24px; }
+
+  .rate-status-card {
+    margin-bottom: 18px;
+    padding: 16px 20px;
+  }
+
+  .rate-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .rate-status-text { min-width: 0; }
+  .rate-status-line { font-size: 13px; font-weight: 700; }
+  .rate-status-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  .refresh-btn {
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    background: var(--mono-bg);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, opacity .15s ease;
+  }
+  .refresh-btn:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+  .refresh-btn:disabled { opacity: .6; cursor: default; }
+
+  .rate-error {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--danger-bg);
+    border: 1px solid var(--danger-border);
+    color: var(--danger);
+    font-size: 12.5px;
+    line-height: 1.4;
+  }
 
   label {
     display: block;
@@ -192,6 +241,17 @@
       <p>輸入金額即時換算，涵蓋台幣、美金、人民幣、日圓與常用旅遊/採購幣別</p>
     </header>
 
+    <section class="card rate-status-card" id="rateStatusCard">
+      <div class="rate-status-row">
+        <div class="rate-status-text">
+          <div class="rate-status-line" id="rateUpdatedText">正在載入匯率...</div>
+          <div class="rate-status-sub" id="rateSourceText"></div>
+        </div>
+        <button type="button" id="refreshRatesBtn" class="refresh-btn">重新整理匯率</button>
+      </div>
+      <div class="rate-error" id="rateErrorBanner" hidden></div>
+    </section>
+
     <section class="card amount-card">
       <label for="amount">輸入金額</label>
       <div class="amount-row">
@@ -213,13 +273,14 @@
     </section>
 
     <footer>
-      參考匯率，資料日期 2026-08-18，僅供試算不代表即時報價<br>
+      匯率資料僅供試算，不代表正式報價<br>
       正式交易請以 <a href="https://rate.bot.com.tw/xrt?Lang=zh-TW" target="_blank" rel="noopener">台灣銀行牌告匯率</a> 為準・純前端計算，資料不會送出或儲存
     </footer>
   </div>
 
 <script>
-  // TWD value of 1 unit of each currency (approximate reference rates).
+  // TWD value of 1 unit of each currency. These are the built-in fallback
+  // rates used until (or unless) a live fetch from the API succeeds.
   const CURRENCIES = [
     { code: "TWD", name: "新台幣", rate: 1,        decimals: 2, group: "primary" },
     { code: "USD", name: "美金",   rate: 32.03,    decimals: 2, group: "primary" },
@@ -315,6 +376,88 @@
   fromSelect.addEventListener("change", renderAll);
 
   renderAll();
+
+  // Live rates: Frankfurter (ECB-based) doesn't publish TWD or VND, so this
+  // page uses open.er-api.com instead (also free, no API key, base=TWD
+  // gives every other currency's value per 1 TWD directly).
+  const RATES_API_URL = "https://open.er-api.com/v6/latest/TWD";
+  const FALLBACK_DATE_LABEL = "2026-08-18";
+
+  const rateUpdatedText = document.getElementById("rateUpdatedText");
+  const rateSourceText = document.getElementById("rateSourceText");
+  const rateErrorBanner = document.getElementById("rateErrorBanner");
+  const refreshBtn = document.getElementById("refreshRatesBtn");
+
+  let isFetchingRates = false;
+  let hasLiveRates = false;
+
+  function showRateError(message) {
+    rateErrorBanner.textContent = message;
+    rateErrorBanner.hidden = false;
+  }
+
+  function hideRateError() {
+    rateErrorBanner.hidden = true;
+    rateErrorBanner.textContent = "";
+  }
+
+  function setLoadingUI(loading) {
+    refreshBtn.disabled = loading;
+    refreshBtn.textContent = loading ? "更新中..." : "重新整理匯率";
+  }
+
+  async function fetchLiveRates() {
+    if (isFetchingRates) return;
+    isFetchingRates = true;
+    setLoadingUI(true);
+    hideRateError();
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    try {
+      const res = await fetch(RATES_API_URL, { signal: controller.signal });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      if (data.result !== "success" || !data.rates) throw new Error("回傳格式異常");
+
+      CURRENCIES.forEach(c => {
+        if (c.code === "TWD") return;
+        const apiRate = data.rates[c.code]; // units of c.code per 1 TWD
+        if (typeof apiRate === "number" && apiRate > 0) {
+          c.rate = 1 / apiRate; // TWD per 1 unit of c.code
+        }
+      });
+
+      hasLiveRates = true;
+      const updatedAt = data.time_last_update_utc ? new Date(data.time_last_update_utc) : new Date();
+      rateUpdatedText.textContent = "匯率更新時間：" + updatedAt.toLocaleString("zh-TW", {
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", hour12: false
+      });
+      rateSourceText.textContent = "資料來源：open.er-api.com（即時匯率）";
+    } catch (err) {
+      const reason = err.name === "AbortError" ? "連線逾時" : (err.message || "未知錯誤");
+      if (!hasLiveRates) {
+        rateUpdatedText.textContent = "使用內建參考匯率（資料日期 " + FALLBACK_DATE_LABEL + "）";
+        rateSourceText.textContent = "尚未取得即時匯率";
+        showRateError("即時匯率抓取失敗（" + reason + "），目前顯示內建參考匯率，僅供試算。");
+      } else {
+        showRateError("重新整理匯率失敗（" + reason + "），目前仍顯示上次成功取得的即時匯率。");
+      }
+    } finally {
+      clearTimeout(timeoutId);
+      isFetchingRates = false;
+      setLoadingUI(false);
+      renderAll();
+    }
+  }
+
+  refreshBtn.addEventListener("click", fetchLiveRates);
+
+  rateUpdatedText.textContent = "使用內建參考匯率（資料日期 " + FALLBACK_DATE_LABEL + "）";
+  rateSourceText.textContent = "正在抓取即時匯率...";
+  fetchLiveRates();
 </script>
 </body>
 </html>
