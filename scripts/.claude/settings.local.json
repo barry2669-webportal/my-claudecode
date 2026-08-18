@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\\\claudecode\\\\scripts\\\\check-host-status.ps1\")",
+      "PowerShell(Start-Process \"C:\\\\claudecode\\\\scripts\\\\ip-subnet-calculator.html\")",
+      "PowerShell(Start-Process \"C:\\\\claudecode\\\\scripts\\\\password-generator.html\")",
+      "PowerShell(Start-Process \"C:\\\\claudecode\\\\scripts\\\\discount-calculator.html\")"
+    ]
+  }
+}

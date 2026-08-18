@@ -1,0 +1,7 @@
+﻿# 每行一個主機名稱或 IP，開頭 # 為註解，空白行會被忽略
+localhost
+127.0.0.1
+8.8.8.8
+google.com
+invalid.host.example
+1.1.1.1

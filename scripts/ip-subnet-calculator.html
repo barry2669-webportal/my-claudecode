@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IP 子網路規劃計算機</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --bg-elevated: #ffffff;
+    --border: #e2e4e9;
+    --text: #1b1e26;
+    --text-muted: #6b7280;
+    --accent: #4f46e5;
+    --accent-soft: #eef0ff;
+    --ok: #16a34a;
+    --error: #dc2626;
+    --error-soft: #fef2f2;
+    --mono-bg: #f7f7f9;
+    --shadow: 0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.06);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161c;
+      --bg-elevated: #1c1f27;
+      --border: #2b2f3a;
+      --text: #e6e8ec;
+      --text-muted: #9aa0ac;
+      --accent: #818cf8;
+      --accent-soft: #23253a;
+      --ok: #4ade80;
+      --error: #f87171;
+      --error-soft: #2a1c1e;
+      --mono-bg: #14161c;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.25);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 40px 20px 80px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+
+  .page {
+    max-width: 920px;
+    margin: 0 auto;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  header h1 {
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+
+  header p {
+    color: var(--text-muted);
+    margin: 0;
+    font-size: 14px;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 20px;
+  }
+
+  @media (max-width: 720px) {
+    .cards { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+  }
+
+  .card h2 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card h2 .badge {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  input[type="text"], input[type="number"] {
+    width: 100%;
+    padding: 11px 14px;
+    font-size: 15px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--mono-bg);
+    color: var(--text);
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+
+  input[type="text"]:focus, input[type="number"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  .field { margin-bottom: 16px; }
+
+  .error-msg {
+    font-size: 13px;
+    color: var(--error);
+    background: var(--error-soft);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 4px;
+    display: none;
+  }
+
+  .error-msg.show { display: block; }
+
+  .results { margin-top: 20px; }
+
+  .results.hidden { display: none; }
+
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .result-row:last-child { border-bottom: none; }
+
+  .result-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .result-value {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 14.5px;
+    font-weight: 600;
+    text-align: right;
+    word-break: break-word;
+  }
+
+  .result-value.accent { color: var(--accent); }
+
+  .hint {
+    margin-top: 14px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 40px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>IP 子網路規劃計算機</h1>
+      <p>輸入即時運算，支援深色模式</p>
+    </header>
+
+    <div class="cards">
+      <section class="card">
+        <h2>子網路資訊 <span class="badge">IP / CIDR</span></h2>
+        <div class="field">
+          <label for="ipCidr">IP 位址 / CIDR</label>
+          <input type="text" id="ipCidr" placeholder="例如 192.168.1.0/24" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="error-msg" id="ipCidrError"></div>
+
+        <div class="results hidden" id="ipCidrResults">
+          <div class="result-row">
+            <span class="result-label">網路位址 Network</span>
+            <span class="result-value accent" id="rNetwork">-</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">廣播位址 Broadcast</span>
+            <span class="result-value accent" id="rBroadcast">-</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">子網路遮罩 Subnet Mask</span>
+            <span class="result-value" id="rMask">-</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">反遮罩 Wildcard Mask</span>
+            <span class="result-value" id="rWildcard">-</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">可用主機範圍 Usable Range</span>
+            <span class="result-value" id="rRange">-</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">可用主機數 Usable Hosts</span>
+            <span class="result-value accent" id="rUsable">-</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">總位址數 Total Addresses</span>
+            <span class="result-value" id="rTotal">-</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>主機數反查 CIDR <span class="badge">Hosts → CIDR</span></h2>
+        <div class="field">
+          <label for="hostCount">需要的可用主機數量</label>
+          <input type="number" id="hostCount" min="1" placeholder="例如 50" autocomplete="off">
+        </div>
+        <div class="error-msg" id="hostCountError"></div>
+
+        <div class="results hidden" id="hostCountResults">
+          <div class="result-row">
+            <span class="result-label">建議 CIDR</span>
+            <span class="result-value accent" id="hPrefix">-</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">子網路遮罩</span>
+            <span class="result-value" id="hMask">-</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">實際可用主機數</span>
+            <span class="result-value" id="hUsable">-</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">總位址數</span>
+            <span class="result-value" id="hTotal">-</span>
+          </div>
+        </div>
+        <p class="hint">計算會取「足以容納所需主機數」的最小區塊（自動處理 /31、/32 特例）。</p>
+      </section>
+    </div>
+
+    <footer>純前端計算，資料不會送出或儲存。</footer>
+  </div>
+
+<script>
+  function ipToInt(parts) {
+    return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
+  }
+
+  function intToIp(int) {
+    return [
+      (int >>> 24) & 255,
+      (int >>> 16) & 255,
+      (int >>> 8) & 255,
+      int & 255
+    ].join(".");
+  }
+
+  function parseIp(str) {
+    const segs = str.trim().split(".");
+    if (segs.length !== 4) return null;
+    const parts = [];
+    for (const s of segs) {
+      if (!/^\d{1,3}$/.test(s)) return null;
+      const n = parseInt(s, 10);
+      if (n < 0 || n > 255) return null;
+      parts.push(n);
+    }
+    return parts;
+  }
+
+  function maskFromPrefix(prefix) {
+    if (prefix === 0) return 0;
+    return (0xFFFFFFFF << (32 - prefix)) >>> 0;
+  }
+
+  function capacityForPrefix(prefix) {
+    const total = Math.pow(2, 32 - prefix);
+    if (prefix === 32) return 1;
+    if (prefix === 31) return 2;
+    return total - 2;
+  }
+
+  // --- IP / CIDR panel ---
+  const ipCidrInput = document.getElementById("ipCidr");
+  const ipCidrError = document.getElementById("ipCidrError");
+  const ipCidrResults = document.getElementById("ipCidrResults");
+
+  function updateIpCidr() {
+    const raw = ipCidrInput.value.trim();
+    if (!raw) {
+      ipCidrError.classList.remove("show");
+      ipCidrResults.classList.add("hidden");
+      return;
+    }
+
+    const match = raw.match(/^([^/]+)\/(\d{1,2})$/);
+    if (!match) {
+      showError(ipCidrError, "格式需為 IP/CIDR，例如 192.168.1.0/24");
+      ipCidrResults.classList.add("hidden");
+      return;
+    }
+
+    const ipStr = match[1].trim();
+    const prefix = parseInt(match[2], 10);
+
+    if (prefix < 0 || prefix > 32) {
+      showError(ipCidrError, "CIDR 前綴需介於 0 到 32 之間");
+      ipCidrResults.classList.add("hidden");
+      return;
+    }
+
+    const parts = parseIp(ipStr);
+    if (!parts) {
+      showError(ipCidrError, "IP 位址格式不正確（需為四段 0-255）");
+      ipCidrResults.classList.add("hidden");
+      return;
+    }
+
+    ipCidrError.classList.remove("show");
+
+    const ipInt = ipToInt(parts);
+    const maskInt = maskFromPrefix(prefix);
+    const networkInt = (ipInt & maskInt) >>> 0;
+    const broadcastInt = (networkInt | (~maskInt >>> 0)) >>> 0;
+    const wildcardInt = (~maskInt) >>> 0;
+    const total = Math.pow(2, 32 - prefix);
+
+    let usable, rangeText;
+    if (prefix === 32) {
+      usable = 1;
+      rangeText = intToIp(networkInt) + " (單一主機)";
+    } else if (prefix === 31) {
+      usable = 2;
+      rangeText = intToIp(networkInt) + " - " + intToIp(broadcastInt) + " (點對點 /31)";
+    } else {
+      usable = total - 2;
+      rangeText = intToIp(networkInt + 1) + " - " + intToIp(broadcastInt - 1);
+    }
+
+    document.getElementById("rNetwork").textContent = intToIp(networkInt) + "/" + prefix;
+    document.getElementById("rBroadcast").textContent = intToIp(broadcastInt);
+    document.getElementById("rMask").textContent = intToIp(maskInt);
+    document.getElementById("rWildcard").textContent = intToIp(wildcardInt);
+    document.getElementById("rRange").textContent = rangeText;
+    document.getElementById("rUsable").textContent = usable.toLocaleString();
+    document.getElementById("rTotal").textContent = total.toLocaleString();
+
+    ipCidrResults.classList.remove("hidden");
+  }
+
+  function showError(el, msg) {
+    el.textContent = msg;
+    el.classList.add("show");
+  }
+
+  ipCidrInput.addEventListener("input", updateIpCidr);
+
+  // --- Host count -> CIDR panel ---
+  const hostCountInput = document.getElementById("hostCount");
+  const hostCountError = document.getElementById("hostCountError");
+  const hostCountResults = document.getElementById("hostCountResults");
+
+  function updateHostCount() {
+    const raw = hostCountInput.value.trim();
+    if (!raw) {
+      hostCountError.classList.remove("show");
+      hostCountResults.classList.add("hidden");
+      return;
+    }
+
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < 1) {
+      showError(hostCountError, "請輸入 1 以上的整數主機數");
+      hostCountResults.classList.add("hidden");
+      return;
+    }
+
+    if (n > 2147483646) {
+      showError(hostCountError, "主機數超出 IPv4 可規劃範圍");
+      hostCountResults.classList.add("hidden");
+      return;
+    }
+
+    hostCountError.classList.remove("show");
+
+    let chosenPrefix = 0;
+    for (let p = 32; p >= 0; p--) {
+      if (capacityForPrefix(p) >= n) {
+        chosenPrefix = p;
+        break;
+      }
+    }
+
+    const maskInt = maskFromPrefix(chosenPrefix);
+    const total = Math.pow(2, 32 - chosenPrefix);
+    const usable = capacityForPrefix(chosenPrefix);
+
+    document.getElementById("hPrefix").textContent = "/" + chosenPrefix;
+    document.getElementById("hMask").textContent = intToIp(maskInt);
+    document.getElementById("hUsable").textContent = usable.toLocaleString();
+    document.getElementById("hTotal").textContent = total.toLocaleString();
+
+    hostCountResults.classList.remove("hidden");
+  }
+
+  hostCountInput.addEventListener("input", updateHostCount);
+
+  // demo defaults
+  ipCidrInput.value = "192.168.1.0/24";
+  updateIpCidr();
+</script>
+</body>
+</html>

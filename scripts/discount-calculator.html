@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>折扣計算機</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --bg-elevated: #ffffff;
+    --border: #e2e4e9;
+    --text: #1b1e26;
+    --text-muted: #6b7280;
+    --accent: #4f46e5;
+    --accent-soft: #eef0ff;
+    --mono-bg: #f7f7f9;
+    --ok: #16a34a;
+    --shadow: 0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.06);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161c;
+      --bg-elevated: #1c1f27;
+      --border: #2b2f3a;
+      --text: #e6e8ec;
+      --text-muted: #9aa0ac;
+      --accent: #818cf8;
+      --accent-soft: #23253a;
+      --mono-bg: #14161c;
+      --ok: #4ade80;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.25);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 40px 20px 80px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+
+  .page { max-width: 760px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 28px; }
+  header h1 { font-size: 26px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.01em; }
+  header p { color: var(--text-muted); margin: 0; font-size: 14px; }
+
+  .card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+  }
+
+  .price-card { margin-bottom: 18px; }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .input-wrap { position: relative; }
+
+  .input-wrap .prefix, .input-wrap .suffix {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-weight: 600;
+    pointer-events: none;
+  }
+  .input-wrap .prefix { left: 16px; font-size: 18px; }
+  .input-wrap .suffix { right: 16px; font-size: 18px; }
+
+  #price {
+    width: 100%;
+    padding: 14px 16px 14px 68px;
+    font-size: 26px;
+    font-weight: 700;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--mono-bg);
+    color: var(--text);
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  #price:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .quick-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .quick-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    align-self: center;
+    margin-right: 2px;
+  }
+
+  .chip {
+    border: 1px solid var(--border);
+    background: var(--mono-bg);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 7px 16px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, transform .1s ease;
+  }
+  .chip:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .chip:active { transform: scale(0.96); }
+
+  .blocks {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-top: 18px;
+  }
+
+  @media (max-width: 620px) {
+    .blocks { grid-template-columns: 1fr; }
+  }
+
+  .block h2 {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0 0 4px;
+  }
+
+  .block .sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0 0 16px;
+  }
+
+  .discount-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .discount-input-wrap input {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 14px;
+    font-size: 22px;
+    font-weight: 700;
+    text-align: right;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--mono-bg);
+    color: var(--text);
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .discount-input-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .discount-unit {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .big-result {
+    text-align: center;
+    padding: 16px 10px;
+    background: var(--accent-soft);
+    border-radius: 12px;
+    margin-bottom: 12px;
+  }
+
+  .big-result .label {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+  }
+
+  .big-result .value {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--accent);
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    letter-spacing: -0.01em;
+  }
+
+  .sub-results {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .sub-result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 8px 12px;
+    background: var(--mono-bg);
+    border-radius: 9px;
+  }
+
+  .sub-result-row .k { font-size: 13px; color: var(--text-muted); }
+  .sub-result-row .v {
+    font-size: 16px;
+    font-weight: 700;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+  .sub-result-row .v.ok { color: var(--ok); }
+  .sub-result-row .v.cross { color: var(--accent); }
+
+  footer { text-align: center; margin-top: 24px; font-size: 12px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>折扣計算機</h1>
+      <p>輸入原價，兩種折扣表示法即時對照換算</p>
+    </header>
+
+    <section class="card price-card">
+      <label for="price">原價金額</label>
+      <div class="input-wrap">
+        <span class="prefix">NT$</span>
+        <input type="number" id="price" value="1000" min="0" step="1">
+      </div>
+      <div class="quick-row">
+        <span class="quick-label">快速套用：</span>
+        <button type="button" class="chip" data-jiu="9.5">95折</button>
+        <button type="button" class="chip" data-jiu="9">9折</button>
+        <button type="button" class="chip" data-jiu="8">8折</button>
+        <button type="button" class="chip" data-jiu="7.5">75折</button>
+      </div>
+    </section>
+
+    <div class="blocks">
+      <section class="card block">
+        <h2>中文折數</h2>
+        <p class="sub">輸入「幾折」，例如 7.5 代表 75 折</p>
+
+        <div class="discount-input-wrap">
+          <input type="number" id="jiuInput" value="7.5" min="0" max="10" step="0.1">
+          <span class="discount-unit">折</span>
+        </div>
+
+        <div class="big-result">
+          <div class="label">折後金額</div>
+          <div class="value" id="jiuFinal">-</div>
+        </div>
+
+        <div class="sub-results">
+          <div class="sub-result-row">
+            <span class="k">省下金額</span>
+            <span class="v ok" id="jiuSaved">-</span>
+          </div>
+          <div class="sub-result-row">
+            <span class="k">對應百分比</span>
+            <span class="v cross" id="jiuAsPercent">-</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card block">
+        <h2>百分比</h2>
+        <p class="sub">輸入折後的百分比，例如 75 代表原價的 75%</p>
+
+        <div class="discount-input-wrap">
+          <input type="number" id="percentInput" value="75" min="0" max="100" step="1">
+          <span class="discount-unit">%</span>
+        </div>
+
+        <div class="big-result">
+          <div class="label">折後金額</div>
+          <div class="value" id="percentFinal">-</div>
+        </div>
+
+        <div class="sub-results">
+          <div class="sub-result-row">
+            <span class="k">省下金額</span>
+            <span class="v ok" id="percentSaved">-</span>
+          </div>
+          <div class="sub-result-row">
+            <span class="k">對應中文折數</span>
+            <span class="v cross" id="percentAsJiu">-</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer>純前端計算，資料不會送出或儲存</footer>
+  </div>
+
+<script>
+  const CN = ["零","一","二","三","四","五","六","七","八","九","十"];
+
+  function formatMoney(n) {
+    if (!isFinite(n)) return "-";
+    return "NT$ " + Math.round(n).toLocaleString("zh-TW");
+  }
+
+  function jiuToChinese(jiu) {
+    const scaled = Math.round(jiu * 10); // 0-100+
+    if (scaled >= 100) return "原價（不打折）";
+    if (scaled <= 0) return "-";
+    if (scaled % 10 === 0) return CN[scaled / 10] + "折";
+    const tens = Math.floor(scaled / 10);
+    const ones = scaled % 10;
+    return CN[tens] + CN[ones] + "折";
+  }
+
+  const priceInput = document.getElementById("price");
+  const jiuInput = document.getElementById("jiuInput");
+  const percentInput = document.getElementById("percentInput");
+
+  function renderBlockA() {
+    const price = parseFloat(priceInput.value) || 0;
+    const jiu = parseFloat(jiuInput.value);
+    if (isNaN(jiu)) return;
+
+    const ratio = jiu / 10;
+    const final = price * ratio;
+    const saved = price - final;
+    const pct = ratio * 100;
+
+    document.getElementById("jiuFinal").textContent = formatMoney(final);
+    document.getElementById("jiuSaved").textContent = formatMoney(saved);
+    document.getElementById("jiuAsPercent").textContent = (Math.round(pct * 10) / 10) + "%";
+  }
+
+  function renderBlockB() {
+    const price = parseFloat(priceInput.value) || 0;
+    const pct = parseFloat(percentInput.value);
+    if (isNaN(pct)) return;
+
+    const ratio = pct / 100;
+    const final = price * ratio;
+    const saved = price - final;
+    const jiu = ratio * 10;
+
+    document.getElementById("percentFinal").textContent = formatMoney(final);
+    document.getElementById("percentSaved").textContent = formatMoney(saved);
+    document.getElementById("percentAsJiu").textContent = jiuToChinese(Math.round(jiu * 10) / 10);
+  }
+
+  function renderAll() {
+    renderBlockA();
+    renderBlockB();
+  }
+
+  priceInput.addEventListener("input", renderAll);
+  jiuInput.addEventListener("input", renderBlockA);
+  percentInput.addEventListener("input", renderBlockB);
+
+  document.querySelectorAll(".chip").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const jiu = parseFloat(btn.dataset.jiu);
+      jiuInput.value = jiu;
+      percentInput.value = Math.round(jiu * 10 * 10) / 10;
+      renderAll();
+    });
+  });
+
+  renderAll();
+</script>
+</body>
+</html>
