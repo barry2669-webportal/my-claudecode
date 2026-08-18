@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>匯率換算</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --bg-elevated: #ffffff;
+    --border: #e2e4e9;
+    --text: #1b1e26;
+    --text-muted: #6b7280;
+    --accent: #4f46e5;
+    --accent-soft: #eef0ff;
+    --mono-bg: #f7f7f9;
+    --ok: #16a34a;
+    --shadow: 0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.06);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161c;
+      --bg-elevated: #1c1f27;
+      --border: #2b2f3a;
+      --text: #e6e8ec;
+      --text-muted: #9aa0ac;
+      --accent: #818cf8;
+      --accent-soft: #23253a;
+      --mono-bg: #14161c;
+      --ok: #4ade80;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.25);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 40px 20px 80px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+
+  .page { max-width: 780px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 28px; }
+  header h1 { font-size: 26px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.01em; }
+  header p { color: var(--text-muted); margin: 0; font-size: 14px; }
+
+  .card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+  }
+
+  .amount-card { margin-bottom: 24px; }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  /* Flex row, not absolute-positioned overlays, so the currency code
+     and the number can never overlap regardless of digit count. */
+  .amount-row {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  #fromCurrency {
+    flex: 0 0 128px;
+    min-width: 0;
+    padding: 0 10px;
+    font-size: 15px;
+    font-weight: 700;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--mono-bg);
+    color: var(--text);
+    outline: none;
+    cursor: pointer;
+  }
+  #fromCurrency:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  #amount {
+    flex: 1;
+    min-width: 0;
+    padding: 14px 16px;
+    font-size: 26px;
+    font-weight: 700;
+    text-align: right;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--mono-bg);
+    color: var(--text);
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  #amount:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  section.group { margin-top: 24px; }
+
+  .group h2 {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0 0 4px;
+  }
+
+  .group .sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0 0 14px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  @media (max-width: 560px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .rate-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--mono-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+
+  .rate-card.active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .rate-card .meta { min-width: 0; }
+  .rate-card .code {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+  }
+  .rate-card .name {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .rate-card .value {
+    font-size: 19px;
+    font-weight: 700;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .rate-card.active .value { color: var(--accent); }
+
+  footer {
+    text-align: center;
+    margin-top: 28px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>匯率換算</h1>
+      <p>輸入金額即時換算，涵蓋台幣、美金、人民幣、日圓與常用旅遊/採購幣別</p>
+    </header>
+
+    <section class="card amount-card">
+      <label for="amount">輸入金額</label>
+      <div class="amount-row">
+        <select id="fromCurrency"></select>
+        <input type="number" id="amount" value="1000" min="0" step="any" inputmode="decimal">
+      </div>
+    </section>
+
+    <section class="group">
+      <h2>常用四幣別</h2>
+      <p class="sub">台幣、美金、人民幣、日圓</p>
+      <div class="grid" id="primaryGrid"></div>
+    </section>
+
+    <section class="group">
+      <h2>常用旅遊/採購幣別</h2>
+      <p class="sub">歐元、韓元、港幣、泰銖、新加坡幣、澳幣、英鎊、越南盾</p>
+      <div class="grid" id="secondaryGrid"></div>
+    </section>
+
+    <footer>
+      參考匯率，資料日期 2026-08-18，僅供試算不代表即時報價<br>
+      正式交易請以 <a href="https://rate.bot.com.tw/xrt?Lang=zh-TW" target="_blank" rel="noopener">台灣銀行牌告匯率</a> 為準・純前端計算，資料不會送出或儲存
+    </footer>
+  </div>
+
+<script>
+  // TWD value of 1 unit of each currency (approximate reference rates).
+  const CURRENCIES = [
+    { code: "TWD", name: "新台幣", rate: 1,        decimals: 2, group: "primary" },
+    { code: "USD", name: "美金",   rate: 32.03,    decimals: 2, group: "primary" },
+    { code: "CNY", name: "人民幣", rate: 4.755,    decimals: 2, group: "primary" },
+    { code: "JPY", name: "日圓",   rate: 0.2179,   decimals: 0, group: "primary" },
+    { code: "EUR", name: "歐元",   rate: 34.91,    decimals: 2, group: "secondary" },
+    { code: "KRW", name: "韓元",   rate: 0.02321,  decimals: 0, group: "secondary" },
+    { code: "HKD", name: "港幣",   rate: 4.084,    decimals: 2, group: "secondary" },
+    { code: "THB", name: "泰銖",   rate: 0.9715,   decimals: 2, group: "secondary" },
+    { code: "SGD", name: "新加坡幣", rate: 25.11,  decimals: 2, group: "secondary" },
+    { code: "AUD", name: "澳幣",   rate: 22.83,    decimals: 2, group: "secondary" },
+    { code: "GBP", name: "英鎊",   rate: 40.68,    decimals: 2, group: "secondary" },
+    { code: "VND", name: "越南盾", rate: 0.001261, decimals: 0, group: "secondary" }
+  ];
+
+  const RATE_BY_CODE = Object.fromEntries(CURRENCIES.map(c => [c.code, c]));
+
+  const fromSelect = document.getElementById("fromCurrency");
+  const amountInput = document.getElementById("amount");
+  const primaryGrid = document.getElementById("primaryGrid");
+  const secondaryGrid = document.getElementById("secondaryGrid");
+
+  CURRENCIES.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c.code;
+    opt.textContent = c.code + " " + c.name;
+    fromSelect.appendChild(opt);
+  });
+  fromSelect.value = "TWD";
+
+  function buildCard(c) {
+    const card = document.createElement("div");
+    card.className = "rate-card";
+    card.dataset.code = c.code;
+
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    const codeEl = document.createElement("div");
+    codeEl.className = "code";
+    codeEl.textContent = c.code;
+    const nameEl = document.createElement("div");
+    nameEl.className = "name";
+    nameEl.textContent = c.name;
+    meta.appendChild(codeEl);
+    meta.appendChild(nameEl);
+
+    const valueEl = document.createElement("div");
+    valueEl.className = "value";
+    valueEl.textContent = "-";
+
+    card.appendChild(meta);
+    card.appendChild(valueEl);
+    return card;
+  }
+
+  CURRENCIES.forEach(c => {
+    const card = buildCard(c);
+    (c.group === "primary" ? primaryGrid : secondaryGrid).appendChild(card);
+  });
+
+  function formatValue(n, decimals) {
+    if (!isFinite(n)) return "-";
+    return n.toLocaleString("zh-TW", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    });
+  }
+
+  function renderAll() {
+    const amount = parseFloat(amountInput.value);
+    const fromCode = fromSelect.value;
+    const fromRate = RATE_BY_CODE[fromCode].rate;
+    const validAmount = isFinite(amount) && amount >= 0;
+    const twdValue = validAmount ? amount * fromRate : NaN;
+
+    document.querySelectorAll(".rate-card").forEach(card => {
+      const code = card.dataset.code;
+      const c = RATE_BY_CODE[code];
+      const valueEl = card.querySelector(".value");
+      const isActive = code === fromCode;
+      card.classList.toggle("active", isActive);
+
+      if (!validAmount) {
+        valueEl.textContent = "-";
+        return;
+      }
+      const converted = isActive ? amount : (twdValue / c.rate);
+      valueEl.textContent = formatValue(converted, c.decimals);
+    });
+  }
+
+  amountInput.addEventListener("input", renderAll);
+  fromSelect.addEventListener("change", renderAll);
+
+  renderAll();
+</script>
+</body>
+</html>
