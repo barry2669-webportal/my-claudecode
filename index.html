@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工具導覽</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --bg-elevated: #ffffff;
+    --border: #e2e4e9;
+    --text: #1b1e26;
+    --text-muted: #6b7280;
+    --accent: #4f46e5;
+    --accent-soft: #eef0ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 48px 20px;
+  }
+  main {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 28px;
+    margin: 0 0 8px;
+  }
+  p.lead {
+    color: var(--text-muted);
+    margin: 0 0 32px;
+  }
+  .tools {
+    display: grid;
+    gap: 16px;
+  }
+  .tool-card {
+    display: block;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .tool-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+  .tool-card h2 {
+    margin: 0 0 6px;
+    font-size: 18px;
+    color: var(--accent);
+  }
+  .tool-card p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+  footer {
+    margin-top: 40px;
+    color: var(--text-muted);
+    font-size: 13px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>工具導覽</h1>
+  <p class="lead">小工具集合，點選以下項目開始使用。</p>
+  <div class="tools">
+    <a class="tool-card" href="scripts/discount-calculator.html">
+      <h2>折扣計算機</h2>
+      <p>輸入原價與折扣，快速計算折扣後金額。</p>
+    </a>
+    <a class="tool-card" href="scripts/ip-subnet-calculator.html">
+      <h2>IP 子網路規劃計算機</h2>
+      <p>計算網路遮罩、可用主機數與子網範圍。</p>
+    </a>
+    <a class="tool-card" href="scripts/password-generator.html">
+      <h2>密碼產生器</h2>
+      <p>產生高強度隨機密碼，支援自訂長度與字元組合。</p>
+    </a>
+  </div>
+  <footer>my-claudecode</footer>
+</main>
+</body>
+</html>
